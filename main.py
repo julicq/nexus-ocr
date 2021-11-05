@@ -71,8 +71,8 @@ def ocr(input, output, verbose):
                 if verbose:
                     logging.info('Image blur applied')
                 # thresh = cv2.threshold(blur, 10, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-                # if args.verbose:
-                #     print('Image threshold applied')
+                # if verbose:
+                #     logging.info('Image threshold applied')
                 outfile = result
                 f = open(outfile, "a")
                 if verbose:
