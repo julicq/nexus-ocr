@@ -1,0 +1,6 @@
+click~=8.0.3
+opencv-python~=4.2.0.34
+isort~=5.10.0
+pytesseract~=0.3.8
+pdf2image~=1.16.0
+Pillow~=8.4.0
