@@ -6,8 +6,13 @@ import cv2
 import easyocr
 from pdf2image import convert_from_path
 from PIL import Image
-import isort
 import tempfile
+from pathlib import Path
+import pkg_resources
+
+# Check the Pillow version
+pillow_version = pkg_resources.get_distribution("Pillow").version
+resampling = Image.Resampling.LANCZOS if pillow_version >= "9.1.0" else Image.LANCZOS
 
 class OCRTool:
     def __init__(self):
@@ -29,18 +34,18 @@ class OCRTool:
 
         file_limit = image_counter - 1
         outfile = result
-        with open(outfile, "a") as f:
+        with open(outfile, "a", encoding='utf-8') as f:
             if verbose:
                 self.logger.info('Output file {} created'.format(result))
             for i in range(1, file_limit + 1):
                 filename = f"{result.stem}_page_{i}.jpg"
                 text = self.reader.readtext(filename, detail=0, paragraph=True)
-                f.write("\n".join(text))
+                f.write("\n".join(text) + "\n")
                 if verbose:
                     self.logger.info('Output file written')
 
     def process_image(self, source, result, verbose):
-        img = cv2.imread(source)
+        img = cv2.imread(str(source))
         if verbose:
             self.logger.info('Image file is in input')
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -50,19 +55,25 @@ class OCRTool:
         if verbose:
             self.logger.info('Image blur applied')
         outfile = result
-        with open(outfile, "a") as f:
+        with open(outfile, "a", encoding='utf-8') as f:
             if verbose:
                 self.logger.info('Output file {} created'.format(result))
             text = self.reader.readtext(blur, detail=0, paragraph=True)
-            f.write("\n".join(text))
+            f.write("\n".join(text) + "\n")
             if verbose:
                 self.logger.info('Output file filled with OCRd text')
 
     def run(self, source, result, verbose):
-        isort.file(source)
-        if source.suffix == ".pdf":
+        if verbose:
+            self.logger.info(f"Processing file: {source}")
+        
+        extension = source.suffix.lower()
+        if verbose:
+            self.logger.info(f"File extension: {extension}")
+        
+        if extension == ".pdf":
             self.process_pdf(source, result, verbose)
-        elif source.suffix in [".png", ".jpg"]:
+        elif extension in [".png", ".jpg", ".jpeg"]:
             self.process_image(source, result, verbose)
         else:
             self.logger.error('Unsupported file format')
@@ -75,16 +86,17 @@ def main():
     verbose = st.checkbox("Enable verbose logging")
 
     if uploaded_file is not None:
-        with tempfile.NamedTemporaryFile(delete=False) as temp:
+        file_extension = uploaded_file.name.split(".")[-1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}") as temp:
             temp.write(uploaded_file.read())
-            temp_path = temp.name
+            temp_path = Path(temp.name)
         
         output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".txt").name
 
         ocr_tool = OCRTool()
-        ocr_tool.run(temp_path, output_path, verbose)
+        ocr_tool.run(temp_path, Path(output_path), verbose)
 
-        with open(output_path, "r") as f:
+        with open(output_path, "r", encoding='utf-8') as f:
             st.text(f.read())
 
 if __name__ == "__main__":
